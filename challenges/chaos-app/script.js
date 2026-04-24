@@ -1,25 +1,24 @@
 // ============================================
 //  CHAOS APP - Lagerverwaltung v0.1
-//  Gefixte Version
+//  Autor: Praktikant (letzter Tag vor den Ferien)
 // ============================================
 
 // --- DATENQUELLE ---
 const products = [
     { id: 1, title: "Tastatur", price: 50, stock: 12 },
-    { id: 2, title: "Maus", price: 30, stock: 5 },
-    { id: 3, title: "Monitor", price: 200, stock: 0 },
+    { id: 2, title: "Maus", price: "30", stock: 5 },
+    { id: 3, title: "Monitor", price: 200 }
 ];
 
 const shippingCosts = 10;
 
 const customers = [
     { id: 1, name: "Anna Müller", email: "anna@example.ch" },
-    { id: 2, name: "Beat Keller", email: "beat@example.ch" },
-    { id: 3, name: "Carla Rossi", email: "carla@example.ch" },
+    { id: 2, firstName: "Beat Keller", email: "beat@example.ch" },
+    { id: 3, name: "Carla Rossi", email: "carla@example.ch" }
 ];
 
-// API-Aufruf fehlgeschlagen: besser leeres Array statt null
-const specialOffers = [];
+const specialOffers = null; // API-Aufruf fehlgeschlagen, gab null statt [] zurück
 
 // --- LOGIK ---
 
@@ -31,29 +30,16 @@ function getFinalPrice(product) {
 // 2. Gesamtwert des Lagers
 function calculateTotalValue(items) {
     let total = 0;
-
     items.forEach(item => {
         total += item.price * item.stock;
     });
-
     return total;
 }
 
-// 3. Produkt suchen & Rabatt anwenden
+// 3. Produkt suchen & Rabatt (Gefahr von Runtime-Crash bei falscher ID)
 function applyDiscount(productId, discount) {
     const product = products.find(p => p.id === productId);
-
-    if (!product) {
-        console.error(`FEHLER: Produkt mit ID ${productId} wurde nicht gefunden.`);
-        return;
-    }
-
     product.price -= discount;
-
-    if (product.price < 0) {
-        product.price = 0;
-    }
-
     console.log(`Neuer Preis für ${product.title}: ${product.price}`);
 }
 
@@ -64,10 +50,6 @@ function printCustomerGreeting(customer) {
 
 // 5. Günstige Produkte filtern
 function getAffordableProducts(items, maxPrice) {
-    if (!items) {
-        return [];
-    }
-
     return items.filter(item => item.price <= maxPrice);
 }
 
@@ -86,7 +68,15 @@ console.log("\n--- Kunden-Begrüssung ---");
 customers.forEach(c => printCustomerGreeting(c));
 
 console.log("\n--- Sonderangebote (max. 100 CHF) ---");
-console.log("Günstige Produkte:", getAffordableProducts(specialOffers, 100));
+try {
+    console.log("Günstige Produkte:", getAffordableProducts(specialOffers, 100));
+} catch (e) {
+    console.error("FEHLER:", e.message);
+}
 
 console.log("\n--- Discount-Aktion ---");
-applyDiscount(99, 5);
+try {
+    applyDiscount(99, 5);
+} catch (e) {
+    console.error("FEHLER:", e.message);
+}
