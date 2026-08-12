@@ -1,22 +1,26 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { BLOGS, Blog } from '../data/blogs';
+import { BlogStateService } from '../services/blog-state.service';
 
 @Component({
   selector: 'app-blog-detail',
   standalone: true,
   imports: [RouterLink],
   template: `
-    @if (blog) {
+    @if (state.loading()) {
+      <p>Blog-Beitrag wird geladen...</p>
+    } @else if (state.error()) {
+      <p>{{ state.error() }}</p>
+    } @else if (blog()) {
       <article>
-        <h1>{{ blog.title }}</h1>
-        <p class="meta">{{ blog.author }} &middot; {{ blog.date }}</p>
-        <p>{{ blog.content }}</p>
+        <h1>{{ blog()?.title }}</h1>
+        <p class="meta">{{ blog()?.author }} &middot; {{ blog()?.date }}</p>
+        <p>{{ blog()?.content }}</p>
       </article>
       <hr />
-      <h3>Weitere Beiträge</h3>
+      <h3>Weitere Beitraege</h3>
       <ul>
-        @for (other of otherBlogs; track other.id) {
+        @for (other of otherBlogs(); track other.id) {
           <li>
             <a [routerLink]="['/blogs', other.id]">{{ other.title }}</a>
           </li>
@@ -25,18 +29,41 @@ import { BLOGS, Blog } from '../data/blogs';
     } @else {
       <p>Blog-Beitrag nicht gefunden.</p>
     }
-    <a routerLink="/blogs" class="back-link">&larr; Zurück zur Übersicht</a>
+    <a routerLink="/blogs" class="back-link">&larr; Zurueck zur Uebersicht</a>
   `,
 })
 export default class BlogDetailComponent implements OnInit {
-  blog: Blog | undefined;
-  otherBlogs: Blog[] = [];
+  protected readonly state = inject(BlogStateService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly blogId = signal<number | null>(null);
 
-  private route = inject(ActivatedRoute);
+  protected readonly blog = computed(() => {
+    const id = this.blogId();
+
+    if (id === null) {
+      return undefined;
+    }
+
+    return this.state.blogs().find((blog) => blog.id === id);
+  });
+
+  protected readonly otherBlogs = computed(() => {
+    const id = this.blogId();
+
+    if (id === null) {
+      return [];
+    }
+
+    return this.state.blogs().filter((blog) => blog.id !== id);
+  });
 
   ngOnInit(): void {
-    const id = Number(this.route.snapshot.paramMap.get('id'));
-    this.blog = BLOGS.find((b) => b.id === id);
-    this.otherBlogs = BLOGS.filter((b) => b.id !== id);
+    this.route.paramMap.subscribe((params) => {
+      this.blogId.set(Number(params.get('id')));
+    });
+
+    if (this.state.blogs().length === 0) {
+      void this.state.loadBlogs();
+    }
   }
 }
